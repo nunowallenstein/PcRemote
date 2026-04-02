@@ -18,6 +18,7 @@ public class RemoteController : ControllerBase
     [HttpPost("media/{action}")]
     public IActionResult Media(string action)
     {
+        Console.WriteLine($"[RemoteController] Media action: {action}");
         switch (action.ToLower())
         {
             case "next": _input.MediaNext(); break;
@@ -36,6 +37,7 @@ public class RemoteController : ControllerBase
     {
         using var reader = new StreamReader(Request.Body);
         var json = await reader.ReadToEndAsync();
+        Console.WriteLine($"[RemoteController] Mouse JSON: {json}");
         var cmd = System.Text.Json.JsonSerializer.Deserialize<MouseCommand>(json);
 
         switch (cmd?.Action)
@@ -44,13 +46,18 @@ public class RemoteController : ControllerBase
                 _input.MouseMove(cmd.Dx ?? 0, cmd.Dy ?? 0);
                 break;
             case "click":
+            case "left":
                 _input.MouseLeftClick();
                 break;
             case "rightclick":
+            case "right":
                 _input.MouseRightClick();
                 break;
             case "scroll":
                 _input.MouseScroll(cmd.Dy ?? 0);
+                break;
+            default:
+                Console.WriteLine($"[RemoteController] Unknown mouse action: {cmd?.Action}");
                 break;
         }
         return Ok();
@@ -61,6 +68,7 @@ public class RemoteController : ControllerBase
     {
         using var reader = new StreamReader(Request.Body);
         var json = await reader.ReadToEndAsync();
+        Console.WriteLine($"[RemoteController] Keyboard JSON: {json}");
         var cmd = System.Text.Json.JsonSerializer.Deserialize<KeyboardCommand>(json);
         
         if (!string.IsNullOrEmpty(cmd?.Key))
