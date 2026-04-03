@@ -24,6 +24,8 @@ else
 
 var app = builder.Build();
 
+app.Urls.Add("http://0.0.0.0:5260");
+
 app.UseRouting();
 app.MapControllers();
 
