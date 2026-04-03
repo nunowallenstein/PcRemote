@@ -63,6 +63,7 @@ public static class HtmlPage
             </div>
             <div class="scroll-btns">
                 <button class="btn" onclick="scroll(-5)">&#x25B2; Up</button>
+                <button class="btn" id="dragBtn" ontouchstart="startDrag()" ontouchend="endDrag()">&#x2194; Drag</button>
                 <button class="btn" onclick="scroll(5)">&#x25BC; Down</button>
             </div>
         </div>
@@ -149,24 +150,14 @@ public static class HtmlPage
         }
 
         var lastPos = null;
-        var touchStartTime = null;
         var isDragging = false;
+        var touchStartTime = null;
 
         touchpad.addEventListener('touchstart', function(e) {
             lastPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             touchStartTime = Date.now();
-            isDragging = false;
             updateIndicator(e.touches[0].clientX, e.touches[0].clientY);
-        });
-
-        touchpad.addEventListener('touchmove', function(e) {
-            e.preventDefault();
-            var rect = touchpad.getBoundingClientRect();
-            var x = e.touches[0].clientX;
-            var y = e.touches[0].clientY;
-            
-            if (touchStartTime && !isDragging && Date.now() - touchStartTime > 2000) {
-                isDragging = true;
+            if (isDragging) {
                 fetch(BASE + '/mouse', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -174,6 +165,13 @@ public static class HtmlPage
                 });
                 indicator.style.background = 'rgba(233, 69, 96, 0.5)';
             }
+        });
+
+        touchpad.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            var rect = touchpad.getBoundingClientRect();
+            var x = e.touches[0].clientX;
+            var y = e.touches[0].clientY;
             
             if (lastPos) {
                 var dx = Math.round((x - lastPos.x) * sensitivity);
@@ -196,17 +194,22 @@ public static class HtmlPage
                     body: JSON.stringify({ action: 'leftup' })
                 });
                 indicator.style.background = 'rgba(0,212,255,0.3)';
+            } else if (touchStartTime && Date.now() - touchStartTime < 200) {
+                mouse('left');
             }
             lastPos = null;
             touchStartTime = null;
-            isDragging = false;
         });
 
-        touchpad.addEventListener('click', function(e) {
-            var rect = touchpad.getBoundingClientRect();
-            updateIndicator(e.clientX - rect.left, e.clientY - rect.top);
-            mouse('left');
-        });
+        function startDrag() {
+            isDragging = true;
+            document.getElementById('dragBtn').style.background = '#e94560';
+        }
+
+        function endDrag() {
+            isDragging = false;
+            document.getElementById('dragBtn').style.background = '#0f3460';
+        }
 
         function updateIndicator(x, y) {
             indicator.style.left = x + 'px';
