@@ -28,6 +28,9 @@ public static class HtmlPage
         .click-btns .btn { flex: 1; }
         .key-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
         .key-btn { padding: 12px 5px; font-size: 0.7rem; }
+        .text-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+        .text-input { flex: 1; background: #0f3460; border: none; border-radius: 8px; padding: 12px; font-size: 1rem; color: #fff; }
+        .text-input::placeholder { color: #666; }
         .scroll-btns { display: flex; gap: 5px; margin-top: 10px; }
         .scroll-btns .btn { flex: 1; font-size: 1.2rem; }
     </style>
@@ -66,6 +69,10 @@ public static class HtmlPage
 
         <div class="section">
             <div class="section-title">Keyboard</div>
+            <div class="text-input-row">
+                <input type="text" id="textInput" class="text-input" placeholder="Type text...">
+                <button class="btn" onclick="sendText()">Send</button>
+            </div>
             <div class="key-grid">
                 <button class="btn key-btn" onclick="key('escape')">ESC</button>
                 <button class="btn key-btn" onclick="key('tab')">TAB</button>
@@ -85,6 +92,12 @@ public static class HtmlPage
                 <button class="btn key-btn" onclick="key('pagedown')">PG&#x2193;</button>
                 <button class="btn key-btn" onclick="key('end')">END</button>
             </div>
+            <div class="key-grid" style="margin-top: 8px;">
+                <button class="btn key-btn" onclick="key('windows')">&#x229E;</button>
+                <button class="btn key-btn" onclick="key('alt')">Alt</button>
+                <button class="btn key-btn" onclick="key('ctrl')">Ctrl</button>
+                <button class="btn key-btn" onclick="key('shift')">&#x21E7;</button>
+            </div>
         </div>
     </div>
 
@@ -95,7 +108,7 @@ public static class HtmlPage
         var indicator = document.getElementById('indicator');
 
         async function media(action) {
-            await fetch(BASE + '/media/' + action, { method: 'POST' });
+            await fetch(BASE + '/media/' + action, { method: 'POST',body:{} },);
         }
 
         async function mouse(action) {
@@ -122,9 +135,27 @@ public static class HtmlPage
             });
         }
 
+        async function sendText() {
+            var input = document.getElementById('textInput');
+            var text = input.value;
+            if (text) {
+                await fetch(BASE + '/keyboard/text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                input.value = '';
+            }
+        }
+
         var lastPos = null;
+        var touchStartTime = null;
+        var isDragging = false;
+
         touchpad.addEventListener('touchstart', function(e) {
             lastPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            touchStartTime = Date.now();
+            isDragging = false;
             updateIndicator(e.touches[0].clientX, e.touches[0].clientY);
         });
 
@@ -133,6 +164,16 @@ public static class HtmlPage
             var rect = touchpad.getBoundingClientRect();
             var x = e.touches[0].clientX;
             var y = e.touches[0].clientY;
+            
+            if (touchStartTime && !isDragging && Date.now() - touchStartTime > 2000) {
+                isDragging = true;
+                fetch(BASE + '/mouse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'leftdown' })
+                });
+                indicator.style.background = 'rgba(233, 69, 96, 0.5)';
+            }
             
             if (lastPos) {
                 var dx = Math.round((x - lastPos.x) * sensitivity);
@@ -147,7 +188,19 @@ public static class HtmlPage
             updateIndicator(x - rect.left, y - rect.top);
         }, { passive: false });
 
-        touchpad.addEventListener('touchend', function() { lastPos = null; });
+        touchpad.addEventListener('touchend', function() {
+            if (isDragging) {
+                fetch(BASE + '/mouse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'leftup' })
+                });
+                indicator.style.background = 'rgba(0,212,255,0.3)';
+            }
+            lastPos = null;
+            touchStartTime = null;
+            isDragging = false;
+        });
 
         touchpad.addEventListener('click', function(e) {
             var rect = touchpad.getBoundingClientRect();

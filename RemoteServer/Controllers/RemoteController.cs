@@ -8,26 +8,30 @@ namespace RemoteServer.Controllers;
 [Route("api")]
 public class RemoteController : ControllerBase
 {
-    private readonly IInputService _input;
+    private readonly IKeyboardInput _keyboard;
+    private readonly IMouseInput _mouse;
+    private readonly IMediaInput _media;
 
-    public RemoteController(IInputService input)
+    public RemoteController(IKeyboardInput keyboard, IMouseInput mouse, IMediaInput media)
     {
-        _input = input;
+        _keyboard = keyboard;
+        _mouse = mouse;
+        _media = media;
     }
-
-    [HttpPost("media/{action}")]
-    public IActionResult Media(string action)
+    
+    [HttpPost("media/{cmd}")]
+    public IActionResult Media(string cmd)
     {
-        Console.WriteLine($"[RemoteController] Media action: {action}");
-        switch (action.ToLower())
+        Console.WriteLine($"[RemoteController] Media cmd: {cmd}");
+        switch (cmd.ToLower())
         {
-            case "next": _input.MediaNext(); break;
-            case "prev": _input.MediaPrevious(); break;
-            case "play": case "pause": _input.MediaPlayPause(); break;
-            case "stop": _input.MediaStop(); break;
-            case "mute": _input.MediaMute(); break;
-            case "volup": _input.MediaVolumeUp(); break;
-            case "voldown": _input.MediaVolumeDown(); break;
+            case "next": _media.Next(); break;
+            case "prev": _media.Previous(); break;
+            case "play": case "pause": _media.PlayPause(); break;
+            case "stop": _media.Stop(); break;
+            case "mute": _media.Mute(); break;
+            case "volup": _media.VolumeUp(); break;
+            case "voldown": _media.VolumeDown(); break;
         }
         return Ok();
     }
@@ -43,18 +47,24 @@ public class RemoteController : ControllerBase
         switch (cmd?.Action)
         {
             case "move":
-                _input.MouseMove(cmd.Dx ?? 0, cmd.Dy ?? 0);
+                _mouse.Move(cmd.Dx ?? 0, cmd.Dy ?? 0);
                 break;
             case "click":
             case "left":
-                _input.MouseLeftClick();
+                _mouse.Click();
+                break;
+            case "leftdown":
+                _mouse.LeftDown();
+                break;
+            case "leftup":
+                _mouse.LeftUp();
                 break;
             case "rightclick":
             case "right":
-                _input.MouseRightClick();
+                _mouse.RightClick();
                 break;
             case "scroll":
-                _input.MouseScroll(cmd.Dy ?? 0);
+                _mouse.Scroll(cmd.Dy ?? 0);
                 break;
             default:
                 Console.WriteLine($"[RemoteController] Unknown mouse action: {cmd?.Action}");
@@ -72,7 +82,21 @@ public class RemoteController : ControllerBase
         var cmd = System.Text.Json.JsonSerializer.Deserialize<KeyboardCommand>(json);
         
         if (!string.IsNullOrEmpty(cmd?.Key))
-            _input.KeyPress(cmd.Key);
+            _keyboard.KeyPress(cmd.Key);
+
+        return Ok();
+    }
+
+    [HttpPost("keyboard/text")]
+    public async Task<IActionResult> KeyboardText()
+    {
+        using var reader = new StreamReader(Request.Body);
+        var json = await reader.ReadToEndAsync();
+        Console.WriteLine($"[RemoteController] Text JSON: {json}");
+        var cmd = System.Text.Json.JsonSerializer.Deserialize<TextCommand>(json);
+        
+        if (!string.IsNullOrEmpty(cmd?.Text))
+            _keyboard.TypeText(cmd.Text);
 
         return Ok();
     }

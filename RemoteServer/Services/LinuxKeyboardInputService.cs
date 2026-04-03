@@ -2,14 +2,14 @@ using System.Diagnostics;
 
 namespace RemoteServer.Services;
 
-public class LinuxInputService : IInputService
+public class LinuxKeyboardInputService : IKeyboardInput
 {
     private readonly string _ydotool;
     private readonly string _ydotoold;
     private bool _initialized;
     private bool _initializationFailed;
 
-    public LinuxInputService(string ydotoolPath = "ydotool", string ydotooldPath = "ydotoold")
+    public LinuxKeyboardInputService(string ydotoolPath = "ydotool", string ydotooldPath = "ydotoold")
     {
         _ydotool = ydotoolPath;
         _ydotoold = ydotooldPath;
@@ -33,14 +33,14 @@ public class LinuxInputService : IInputService
             whichProcess?.WaitForExit(2000);
             if (whichProcess?.ExitCode != 0)
             {
-                Console.WriteLine("[LinuxInput] ERROR: ydotoold not found. Install with: sudo apt install ydotoold");
+                Console.WriteLine("[LinuxKeyboard] ERROR: ydotoold not found. Install with: sudo apt install ydotoold");
                 _initializationFailed = true;
                 return;
             }
         }
         catch
         {
-            Console.WriteLine("[LinuxInput] ERROR: ydotoold not found. Install with: sudo apt install ydotoold");
+            Console.WriteLine("[LinuxKeyboard] ERROR: ydotoold not found. Install with: sudo apt install ydotoold");
             _initializationFailed = true;
             return;
         }
@@ -75,7 +75,7 @@ public class LinuxInputService : IInputService
                 UseShellExecute = false,
                 CreateNoWindow = true
             });
-            Console.WriteLine($"[LinuxInput] Started ydotoold (PID: {daemonProcess?.Id})");
+            Console.WriteLine($"[LinuxKeyboard] Started ydotoold (PID: {daemonProcess?.Id})");
             Thread.Sleep(500);
         }
     }
@@ -100,52 +100,51 @@ public class LinuxInputService : IInputService
         catch when (ignoreError) { }
     }
 
-    public void MediaNext() { EnsureInitialized(); RunCommand("key KEY_NEXTSONG"); }
-    public void MediaPrevious() { EnsureInitialized(); RunCommand("key KEY_PREVIOUSSONG"); }
-    public void MediaPlayPause() { EnsureInitialized(); RunCommand("key KEY_PLAYPAUSE"); }
-    public void MediaStop() { EnsureInitialized(); RunCommand("key KEY_STOP"); }
-    public void MediaMute() { EnsureInitialized(); RunCommand("key KEY_MUTE"); }
-    public void MediaVolumeUp() { EnsureInitialized(); RunCommand("key KEY_VOLUMEUP"); }
-    public void MediaVolumeDown() { EnsureInitialized(); RunCommand("key KEY_VOLUMEDOWN"); }
-
-    public void MouseMove(int dx, int dy) { EnsureInitialized(); RunCommand($"mousemove --relative {dx} {dy}"); }
-    public void MouseLeftClick() { EnsureInitialized(); RunCommand("click 0xC0"); }
-    public void MouseRightClick() { EnsureInitialized(); RunCommand("click 0xC1"); }
-    public void MouseScroll(int dy) { EnsureInitialized(); RunCommand($"mousemove --relative 0 {dy}"); }
-
     public void KeyPress(string key)
     {
         EnsureInitialized();
-        var k = key.ToLower() switch
-        {
-            "enter" => "KEY_ENTER",
-            "escape" => "KEY_ESC",
-            "tab" => "KEY_TAB",
-            "backspace" => "KEY_BACKSPACE",
-            "space" => "KEY_SPACE",
-            "up" => "KEY_UP",
-            "down" => "KEY_DOWN",
-            "left" => "KEY_LEFT",
-            "right" => "KEY_RIGHT",
-            "home" => "KEY_HOME",
-            "end" => "KEY_END",
-            "pageup" => "KEY_PAGEUP",
-            "pagedown" => "KEY_PAGEDOWN",
-            _ => null
-        };
+        var k = LinuxKeyMapper.GetLinuxKeyFromKeyName(key);
 
         if (k != null)
             RunCommand($"key {k}");
     }
 
+    public void TypeText(string text)
+    {
+        EnsureInitialized();
+        Console.WriteLine($"[LinuxKeyboard] TypeText: {text}");
+        
+        foreach (char c in text)
+        {
+            bool needsShift = char.IsUpper(c) || KeyCharHelper.IsShiftedChar(c);
+            
+            if (needsShift)
+            {
+                RunCommand("key KEY_LEFTSHIFT:1");
+            }
+            
+            var escapedText = c.ToString().Replace("'", "'\\''");
+            RunCommand($"text '{escapedText}'");
+            
+            if (needsShift)
+            {
+                RunCommand("key KEY_LEFTSHIFT:0");
+            }
+            
+            Thread.Sleep(10);
+        }
+        
+        Console.WriteLine("[LinuxKeyboard] TypeText completed");
+    }
+
     private void RunCommand(string args)
     {
         var cmd = $"{_ydotool} {args}";
-        Console.WriteLine($"[LinuxInput] Executing: {cmd}");
+        Console.WriteLine($"[LinuxKeyboard] Executing: {cmd}");
 
         try
         {
-            var startInfo = new System.Diagnostics.ProcessStartInfo
+            var startInfo = new ProcessStartInfo
             {
                 FileName = _ydotool,
                 Arguments = args,
@@ -155,10 +154,10 @@ public class LinuxInputService : IInputService
                 CreateNoWindow = true
             };
 
-            using var process = System.Diagnostics.Process.Start(startInfo);
+            using var process = Process.Start(startInfo);
             if (process == null)
             {
-                Console.WriteLine("[LinuxInput] ERROR: Failed to start process");
+                Console.WriteLine("[LinuxKeyboard] ERROR: Failed to start process");
                 return;
             }
 
@@ -166,24 +165,22 @@ public class LinuxInputService : IInputService
             var error = process.StandardError.ReadToEnd();
             process.WaitForExit(1000);
 
-            Console.WriteLine($"[LinuxInput] Exit code: {process.ExitCode}");
+            Console.WriteLine($"[LinuxKeyboard] Exit code: {process.ExitCode}");
             
             if (!string.IsNullOrWhiteSpace(output))
-                Console.WriteLine($"[LinuxInput] Output: {output.Trim()}");
+                Console.WriteLine($"[LinuxKeyboard] Output: {output.Trim()}");
             
             if (!string.IsNullOrWhiteSpace(error))
-                Console.WriteLine($"[LinuxInput] Error: {error.Trim()}");
+                Console.WriteLine($"[LinuxKeyboard] Error: {error.Trim()}");
 
             if (process.ExitCode != 0)
-                Console.WriteLine($"[LinuxInput] Command failed with exit code {process.ExitCode}");
+                Console.WriteLine($"[LinuxKeyboard] Command failed with exit code {process.ExitCode}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[LinuxInput] EXCEPTION: {ex.GetType().Name}: {ex.Message}");
-            if (ex.InnerException != null)
-                Console.WriteLine($"[LinuxInput] Inner Exception: {ex.InnerException.Message}");
+            Console.WriteLine($"[LinuxKeyboard] EXCEPTION: {ex.GetType().Name}: {ex.Message}");
         }
         
-        Console.WriteLine("[LinuxInput] Done");
+        Console.WriteLine("[LinuxKeyboard] Done");
     }
 }
