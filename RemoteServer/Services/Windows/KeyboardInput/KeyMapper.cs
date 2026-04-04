@@ -1,9 +1,40 @@
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Windows.KeyboardInput;
 
-public static class WindowsKeyMapper
+public static class KeyMapper
 {
     public static short GetVkFromChar(char c)
     {
+        // Handle shifted chars first (before lowercasing)
+        var vk = c switch
+        {
+            '!' => (short)0x31,
+            '@' => (short)0x32,
+            '#' => (short)0x33,
+            '$' => (short)0x34,
+            '%' => (short)0x35,
+            '^' => (short)0x36,
+            '&' => (short)0x37,
+            '*' => (short)0x38,
+            '(' => (short)0x39,
+            ')' => (short)0x30,
+            '_' => (short)0xBD,
+            '+' => (short)0xBB,
+            '{' => (short)0xDB,
+            '}' => (short)0xDD,
+            '|' => (short)0xDC,
+            ':' => (short)0xBA,
+            '"' => (short)0xDE,
+            '<' => (short)0xBC,
+            '>' => (short)0xBE,
+            '?' => (short)0xBF,
+            '~' => (short)0xC0,
+            _ => (short)0
+        };
+
+        if (vk != 0)
+            return vk;
+
+        // Lowercase the rest and lookup
         c = char.ToLower(c);
         return c switch
         {
@@ -55,8 +86,13 @@ public static class WindowsKeyMapper
             '.' => 0xBE,
             '/' => 0xBF,
             '`' => 0xC0,
-            _ => 0
+            _ => (short)0
         };
+    }
+
+    public static bool NeedsAltNumpad(char c)
+    {
+        return c > 127;
     }
 
     public static short GetVkFromKeyName(string key)
@@ -77,9 +113,12 @@ public static class WindowsKeyMapper
             "pageup" => 0x21,
             "pagedown" => 0x22,
             "windows" => 0x5B,
+            "win" => 0x5B,
             "alt" => 0xA4,
             "ctrl" => 0xA2,
             "shift" => 0xA0,
+            "delete" => 0x2E,
+            "insert" => 0x2D,
             _ => 0
         };
     }

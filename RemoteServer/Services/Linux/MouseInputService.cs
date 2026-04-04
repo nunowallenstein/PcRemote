@@ -1,12 +1,17 @@
 using System.Diagnostics;
 
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Linux;
 
-public class LinuxMouseInputService : IMouseInput
+public class MouseInputService : IMouseInput
 {
     private const string Ydotool = "ydotool";
 
     private bool _initialized;
+
+    private readonly Dictionary<string, bool> _toggledStates = new()
+    {
+        ["drag"] = false
+    };
 
     private void EnsureInitialized()
     {
@@ -48,6 +53,35 @@ public class LinuxMouseInputService : IMouseInput
     {
         EnsureInitialized();
         RunCommand("click 0x111");
+    }
+
+    public void Toggle(string target)
+    {
+        var key = target.ToLower();
+        if (!_toggledStates.ContainsKey(key))
+            return;
+
+        EnsureInitialized();
+        var isCurrentlyToggled = _toggledStates[key];
+
+        if (isCurrentlyToggled)
+        {
+            Console.WriteLine($"[LinuxMouse] {key} Toggle OFF");
+            RunCommand("click 0x111");
+            _toggledStates[key] = false;
+        }
+        else
+        {
+            Console.WriteLine($"[LinuxMouse] {key} Toggle ON");
+            RunCommand("click 0x110");
+            _toggledStates[key] = true;
+        }
+    }
+
+    public bool IsToggled(string target)
+    {
+        var key = target.ToLower();
+        return _toggledStates.TryGetValue(key, out var isToggled) && isToggled;
     }
 
     private void RunCommand(string args)

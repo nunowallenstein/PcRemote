@@ -9,4 +9,5 @@ public interface IMediaInput
     void Mute();
     void VolumeUp();
     void VolumeDown();
+    void SetVolume(int level);
 }

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PC Remote</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>PC Remote</h1>
+        
+        <div class="section">
+            <div class="section-title">Media Controls</div>
+            <div class="grid media-grid">
+                <button class="btn" onclick="media('prev')">&#x23EA;</button>
+                <button class="btn btn-play btn-lg" onclick="media('play')">&#x23F9;</button>
+                <button class="btn" onclick="media('next')">&#x23ED;</button>
+            </div>
+            <div class="volume-row">
+                <button class="btn btn-volume" onclick="media('mute')">&#x1F507;</button>
+                <input type="range" min="0" max="100" value="50" class="volume-slider" id="volumeSlider" oninput="setVolume(this.value)">
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Touchpad</div>
+            <div class="touchpad" id="touchpad">
+                <div class="touchpad-dot"></div>
+                <div class="touchpad-indicator" id="indicator"></div>
+            </div>
+            <div class="click-btns">
+                <button class="btn" onclick="mouse('left')">Left</button>
+                <button class="btn" onclick="mouse('right')">Right</button>
+            </div>
+            <div class="scroll-btns">
+                <button class="btn" onclick="doScroll(5)">&#x25B2;</button>
+                <button class="btn btn-toggle" id="dragBtn" onclick="toggleDrag()">&#x2194; Drag</button>
+                <button class="btn" onclick="doScroll(-5)">&#x25BC;</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Keyboard</div>
+            <div class="text-input-row">
+                <input type="text" id="textInput" class="text-input" placeholder="Type text...">
+                <button class="btn" onclick="sendText()">Send</button>
+            </div>
+            <div class="key-grid">
+                <button class="btn key-btn" onclick="key('escape')">ESC</button>
+                <button class="btn key-btn" onclick="key('tab')">TAB</button>
+                <button class="btn key-btn" onclick="key('enter')">&#x21B5;</button>
+                <button class="btn key-btn" onclick="key('backspace')">&#x232B;</button>
+                <button class="btn key-btn" onclick="key('space')">SPC</button>
+            </div>
+            <div class="key-grid">
+                <button class="btn key-btn" onclick="key('up')">&#x25B2;</button>
+                <button class="btn key-btn" onclick="key('left')">&#x25C0;</button>
+                <button class="btn key-btn" onclick="key('down')">&#x25BC;</button>
+                <button class="btn key-btn" onclick="key('right')">&#x25B6;</button>
+                <button class="btn key-btn" onclick="key('home')">&#x2302;</button>
+            </div>
+            <div class="key-grid">
+                <button class="btn key-btn" onclick="key('pageup')">PG&#x2191;</button>
+                <button class="btn key-btn" onclick="key('pagedown')">PG&#x2193;</button>
+                <button class="btn key-btn" onclick="key('end')">END</button>
+            </div>
+            <div class="key-grid">
+                <button class="btn key-btn" id="numlockBtn" onpointerdown="startPress('numlock')" onpointerup="endPress('numlock')">NUM</button>
+                <button class="btn key-btn" onclick="key('insert')">INS</button>
+                <button class="btn key-btn" id="deleteBtn" onpointerdown="startPress('delete')" onpointerup="endPress('delete')">DEL</button>
+                <button class="btn key-btn" id="winBtn" onpointerdown="startPress('win')" onpointerup="endPress('win')">&#x229E;</button>
+                <button class="btn key-btn" id="altBtn" onpointerdown="startPress('alt')" onpointerup="endPress('alt')">Alt</button>
+            </div>
+            <div class="key-grid">
+                <button class="btn key-btn" id="ctrlBtn" onpointerdown="startPress('ctrl')" onpointerup="endPress('ctrl')">Ctrl</button>
+                <button class="btn key-btn" id="shiftBtn" onpointerdown="startPress('shift')" onpointerup="endPress('shift')">&#x21E7;</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 namespace RemoteServer.Services;
 
-public interface IMouseInput
+public interface IMouseInput : ITogglable
 {
     void Move(int dx, int dy);
     void Click();

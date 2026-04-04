@@ -1,8 +1,8 @@
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Linux;
 
-public static class LinuxKeyMapper
+public static class KeyMapper
 {
-    public static string GetLinuxKeyFromKeyName(string key)
+    public static string? GetLinuxKeyFromKeyName(string key)
     {
         return key.ToLower() switch
         {
@@ -20,6 +20,7 @@ public static class LinuxKeyMapper
             "pageup" => "KEY_PAGEUP",
             "pagedown" => "KEY_PAGEDOWN",
             "windows" => "KEY_LEFTMETA",
+            "win" => "KEY_LEFTMETA",
             "alt" => "KEY_LEFTALT",
             "ctrl" => "KEY_LEFTCTRL",
             "shift" => "KEY_LEFTSHIFT",
@@ -27,7 +28,7 @@ public static class LinuxKeyMapper
         };
     }
 
-    public static string GetLinuxMediaKey(string name)
+    public static string? GetLinuxMediaKey(string name)
     {
         return name.ToLower() switch
         {

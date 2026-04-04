@@ -1,4 +1,4 @@
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Windows.KeyboardInput;
 
 public static class KeyCharHelper
 {

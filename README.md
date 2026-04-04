@@ -1,16 +1,58 @@
 # PC Remote - Control Your PC from Your Phone
 
-Control your Windows PC remotely from your phone using a web-based touchpad and keyboard interface.
+Control your Windows or Linux PC remotely from your phone using a web-based touchpad and keyboard interface.
 
 ## Features
 
-- **Touchpad**: Move cursor, click (tap), and drag (hold drag button + touch)
-- **Mouse Buttons**: Left click, right click
-- **Scroll**: Up/Down buttons
-- **Media Controls**: Play/Pause, Next, Previous, Volume, Mute
-- **Keyboard**: Special keys (ESC, TAB, Enter, etc.) + modifier keys (Win, Alt, Ctrl, Shift)
-- **Text Input**: Type text from your phone's keyboard
-- **Drag & Drop**: Hold the Drag button while moving on touchpad to drag items
+### Mouse Control
+- **Touchpad** - Move cursor by dragging (uses Pointer Events for unified touch/mouse handling)
+- **Click** - Tap to click (single click, no duplicates)
+- **Double-click** - Two quick taps
+- **Right-click** - Dedicated right button
+- **Drag mode** - Toggle drag mode to click and drag files/selection
+- **Scroll** - Up/down buttons for scrolling
+
+### Keyboard Control
+- **Text typing** - Type text on your phone, sends to PC using strategy pattern:
+  - Normal ASCII characters: Uses `keybd_event` API
+  - Special characters (>127): Uses `SendKeys` API
+- **Special characters** - Portuguese accents (á, à, â, ã, é, etc.) and special symbols (/, ?, <, >, {, }, |, ", ', ~)
+- **Modifier keys** - Shift, Ctrl, Alt, Windows, Delete
+- **Toggle mode** - Hold for 1 second to toggle modifier ON, quick tap to toggle OFF
+- **NumLock** - Quick tap toggle (different from other modifiers)
+- **Additional keys** - Arrow keys, Enter, Escape, Tab, Backspace, Delete, Insert, Home, End, Page Up/Down
+
+### Media Controls
+- **Playback** - Previous, Play/Pause, Next, Stop
+- **Volume** - Slider to set volume 0-100% (using NAudio on Windows)
+- **Mute** - Toggle mute
+
+## Architecture
+
+### Controllers (4 Separate Controllers)
+
+| Controller | Route | Description |
+|------------|-------|-------------|
+| `IndexController` | `/`, `/api/state` | Serves HTML UI and toggle state |
+| `MediaController` | `/api/media` | Media controls (play, pause, volume, etc.) |
+| `MouseController` | `/api/mouse` | Mouse movement, clicks, scroll |
+| `KeyboardController` | `/api/keyboard` | Key presses and text typing |
+
+### Services (Platform-Specific)
+
+#### Windows Services
+| Service | Description |
+|---------|-------------|
+| `KeyPressService` | Single key press and toggle logic |
+| `WritingService` | Text typing with strategy pattern |
+| `MouseInputService` | Mouse movement, clicks, scroll |
+| `MediaInputService` | Media keys and volume control (using NAudio) |
+
+#### Text Strategies (WritingService)
+| Strategy | Description |
+|----------|-------------|
+| `KeybdTextStrategy` | Uses keybd_event for normal ASCII characters |
+| `SendKeysTextStrategy` | Uses SendKeys for special characters (>127) |
 
 ## Quick Start
 
@@ -21,41 +63,23 @@ cd RemoteServer
 dotnet run
 ```
 
-The server will start on `http://0.0.0.0:5260`
+The server will start on `http://0.0.0.0:5260` and display IP addresses to access from your phone.
 
-### 2. Allow Firewall (Important!)
+### 2. Allow Firewall (Windows)
 
 Windows Firewall will block external connections by default. To allow:
 
-1. Open **Windows Defender Firewall** (search in Start menu)
+1. Open **Windows Defender Firewall**
 2. Click **"Allow an app through firewall"**
 3. Click **"Change settings"** → **"Allow another app..."**
-4. Browse to `RemoteServer\bin\Debug\net10.0\RemoteServer.exe`
+4. Browse to the published exe
 5. Check both **Private** and **Public** boxes
 6. Click **OK**
 
-### 3. Find Your PC's IP Address
-
-1. Open **Command Prompt** (Win + R, type `cmd`, Enter)
-2. Run: `ipconfig`
-3. Look for **IPv4 Address** under your active network adapter (usually "Wireless LAN adapter Wi-Fi")
-
-Example output:
-```
-Wireless LAN adapter Wi-Fi:
-
-   IPv4 Address. . . . . . . . . . . : 192.168.1.100
-```
-
-### 4. Access from Phone
+### 3. Access from Phone
 
 1. Connect your phone to the **same WiFi network** as your PC
-2. Open browser on phone and go to:
-   ```
-   http://192.168.1.100:5260
-   ```
-   (Replace `192.168.1.100` with your actual IP address)
-
+2. Open browser on phone and go to: `http://<your-ip>:5260`
 3. The remote interface should load
 
 ## Controls
@@ -70,53 +94,122 @@ Wireless LAN adapter Wi-Fi:
 ### Media Controls
 - Play/Pause: Toggle play/pause
 - Prev/Next: Previous/Next track
-- Volume Up/Down: Adjust volume
+- Volume Slider: Drag to set volume 0-100%
 - Mute: Toggle mute
 
 ### Keyboard
 - **Text Input**: Type in the text box, tap "Send" to type on PC
-- **Modifier Keys**: Win (⊞), Alt, Ctrl, Shift
+- **Modifier Keys**: Win (⊞), Alt, Ctrl, Shift, Delete - Hold 1s to toggle ON, tap to toggle OFF
 - **Special Keys**: ESC, TAB, Enter, Backspace, Space, Arrow keys
+
+## Building and Publishing
+
+### Build
+```bash
+dotnet build
+```
+
+### Publish (Windows)
+```bash
+dotnet publish -c Release -r win-x64 --self-contained true -o ./publish
+```
+
+### Publish (Linux)
+```bash
+dotnet publish -c Release -r linux-x64 --self-contained true -o ./publish
+```
+
+## Linux Requirements
+
+For Linux, `ydotool` must be installed:
+```bash
+sudo apt install ydotoold
+```
+
+## API Endpoints
+
+### Index
+```
+GET /                    # Returns HTML UI
+GET /api/state          # Returns toggle states
+```
+
+### Media
+```
+POST /api/media/next        # Next track
+POST /api/media/prev        # Previous track
+POST /api/media/play       # Play/Pause toggle
+POST /api/media/stop       # Stop
+POST /api/media/mute       # Mute toggle
+POST /api/media/volup      # Volume up
+POST /api/media/voldown    # Volume down
+POST /api/media/volume     # Set volume (body: 0-100)
+```
+
+### Mouse
+```
+POST /api/mouse
+{
+    action: "move" | "click" | "left" | "leftdown" | "leftup" | "right" | "scroll",
+    dx?: number,
+    dy?: number,
+    holdDuration?: number
+}
+```
+
+### Keyboard
+```
+POST /api/keyboard
+{
+    key: string,
+    holdDuration?: number
+}
+
+POST /api/keyboard/text
+{
+    text: string
+}
+```
 
 ## Troubleshooting
 
 ### Phone can't connect
-1. **Verify firewall is open** (see step 2 above)
+1. **Verify firewall is open**
 2. **Check IP address** - make sure you're using the correct IPv4 address
 3. **Restart the server** after making changes
-4. **Try ping** from phone's browser - should show timeout if firewall issue, or different error if network issue
 
 ### Server not listening on network
-Make sure you're running with:
-```json
-"applicationUrl": "http://0.0.0.0:5260"
+Make sure you're running with `http://0.0.0.0:5260`
+
+### Volume slider not working (Windows)
+The volume slider uses NAudio. First run may require administrator privileges to access audio devices.
+
+## Project Structure
+
 ```
-in `Properties/launchSettings.json`
-
-If running via command line:
-```bash
-dotnet run --urls=http://0.0.0.0:5260
+RemoteServer/
+├── Controllers/
+│   ├── IndexController.cs
+│   ├── MediaController.cs
+│   ├── MouseController.cs
+│   └── KeyboardController.cs
+├── Services/
+│   ├── Windows/
+│   │   ├── KeyboardInput/
+│   │   │   ├── TextStrategies/
+│   │   │   ├── KeyPressService.cs
+│   │   │   ├── WritingService.cs
+│   │   │   └── KeyMapper.cs
+│   │   ├── MouseInputService.cs
+│   │   └── MediaInputService.cs
+│   └── Linux/
+│       ├── KeyboardInputService.cs
+│       ├── MouseInputService.cs
+│       └── MediaInputService.cs
+├── wwwroot/
+│   ├── index.html
+│   ├── app.js
+│   └── style.css
+├── Program.cs
+└── RemoteServer.csproj
 ```
-
-### Still not working?
-- Ensure phone and PC are on the **same WiFi network**
-- Check if any antivirus software is blocking connections
-- Try accessing from PC browser first: `http://localhost:5260`
-
-## Building
-
-```bash
-# Build for release
-dotnet publish -c Release
-```
-
-The executable will be in `bin\Release\net10.0\publish\`
-
-## Running as Windows Service (Optional)
-
-To run on startup without manual launch, use [NSSM](https://nssm.cc/):
-
-1. Download NSSM
-2. Run: `nssm install RemoteServer "C:\path\to\RemoteServer.exe"`
-3. Set AppDirectory to the folder containing the exe
-4. Start: `nssm start RemoteServer`

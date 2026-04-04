@@ -1,15 +1,24 @@
 using System.Diagnostics;
+using RemoteServer.Services.Windows.KeyboardInput;
 
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Linux;
 
-public class LinuxKeyboardInputService : IKeyboardInput
+public class KeyboardInputService : IKeyboardInput
 {
     private readonly string _ydotool;
     private readonly string _ydotoold;
     private bool _initialized;
     private bool _initializationFailed;
 
-    public LinuxKeyboardInputService(string ydotoolPath = "ydotool", string ydotooldPath = "ydotoold")
+    private readonly Dictionary<string, bool> _toggledStates = new()
+    {
+        ["shift"] = false,
+        ["ctrl"] = false,
+        ["alt"] = false,
+        ["win"] = false
+    };
+
+    public KeyboardInputService(string ydotoolPath = "ydotool", string ydotooldPath = "ydotoold")
     {
         _ydotool = ydotoolPath;
         _ydotoold = ydotooldPath;
@@ -103,7 +112,7 @@ public class LinuxKeyboardInputService : IKeyboardInput
     public void KeyPress(string key)
     {
         EnsureInitialized();
-        var k = LinuxKeyMapper.GetLinuxKeyFromKeyName(key);
+        var k = KeyMapper.GetLinuxKeyFromKeyName(key);
 
         if (k != null)
             RunCommand($"key {k}");
@@ -130,8 +139,6 @@ public class LinuxKeyboardInputService : IKeyboardInput
             {
                 RunCommand("key KEY_LEFTSHIFT:0");
             }
-            
-            Thread.Sleep(10);
         }
         
         Console.WriteLine("[LinuxKeyboard] TypeText completed");
@@ -182,5 +189,58 @@ public class LinuxKeyboardInputService : IKeyboardInput
         }
         
         Console.WriteLine("[LinuxKeyboard] Done");
+    }
+
+    public void Toggle(string target)
+    {
+        var key = target.ToLower();
+        if (!_toggledStates.ContainsKey(key))
+            return;
+
+        EnsureInitialized();
+        var isCurrentlyToggled = _toggledStates[key];
+
+        if (isCurrentlyToggled)
+        {
+            Console.WriteLine($"[LinuxKeyboard] {key} Toggle OFF");
+            RunCommand(GetLinuxKeyRelease(key));
+            _toggledStates[key] = false;
+        }
+        else
+        {
+            Console.WriteLine($"[LinuxKeyboard] {key} Toggle ON");
+            RunCommand(GetLinuxKeyPress(key));
+            _toggledStates[key] = true;
+        }
+    }
+
+    public bool IsToggled(string target)
+    {
+        var key = target.ToLower();
+        return _toggledStates.TryGetValue(key, out var isToggled) && isToggled;
+    }
+
+    private static string GetLinuxKeyPress(string key)
+    {
+        return key switch
+        {
+            "shift" => "key KEY_LEFTSHIFT:1",
+            "ctrl" => "key KEY_LEFTCTRL:1",
+            "alt" => "key KEY_LEFTALT:1",
+            "win" => "key KEY_LEFTMETA:1",
+            _ => ""
+        };
+    }
+
+    private static string GetLinuxKeyRelease(string key)
+    {
+        return key switch
+        {
+            "shift" => "key KEY_LEFTSHIFT:0",
+            "ctrl" => "key KEY_LEFTCTRL:0",
+            "alt" => "key KEY_LEFTALT:0",
+            "win" => "key KEY_LEFTMETA:0",
+            _ => ""
+        };
     }
 }

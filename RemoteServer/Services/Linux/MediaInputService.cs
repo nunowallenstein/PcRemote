@@ -1,8 +1,8 @@
 using System.Diagnostics;
 
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Linux;
 
-public class LinuxMediaInputService : IMediaInput
+public class MediaInputService : IMediaInput
 {
     private const string Ydotool = "ydotool";
     private bool _initialized;
@@ -20,6 +20,10 @@ public class LinuxMediaInputService : IMediaInput
     public void Mute() => RunCommand("key KEY_MUTE");
     public void VolumeUp() => RunCommand("key KEY_VOLUMEUP");
     public void VolumeDown() => RunCommand("key KEY_VOLUMEDOWN");
+    public void SetVolume(int level)
+    {
+        Console.WriteLine($"[LinuxMedia] SetVolume: {level}% (not implemented on Linux)");
+    }
 
     private void RunCommand(string args)
     {

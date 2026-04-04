@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 
-namespace RemoteServer.Services;
+namespace RemoteServer.Services.Windows;
 
-public class WindowsMouseInputService : IMouseInput
+public class MouseInputService : IMouseInput
 {
     [DllImport("user32.dll")]
     private static extern bool SetCursorPos(int X, int Y);
@@ -22,6 +22,12 @@ public class WindowsMouseInputService : IMouseInput
     private const uint MOUSEEVENTF_RIGHTDOWN = 0x0008;
     private const uint MOUSEEVENTF_RIGHTUP = 0x0010;
     private const uint MOUSEEVENTF_WHEEL = 0x0800;
+    private const uint MOUSEEVENTF_HWHEEL = 0x01000;
+
+    private readonly Dictionary<string, bool> _toggledStates = new()
+    {
+        ["drag"] = false
+    };
 
     public void Move(int dx, int dy)
     {
@@ -85,8 +91,10 @@ public class WindowsMouseInputService : IMouseInput
 
     public void Scroll(int dy)
     {
-        Console.WriteLine($"[WindowsMouse] Scroll: dy={dy}");
-        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, (uint)dy, 0);
+        Console.WriteLine($"[WindowsMouse] Scroll: dy={dy}, sizeof(int)={sizeof(int)}, sizeof(uint)={sizeof(uint)}");
+        uint wheelDelta = unchecked((uint)dy);
+        Console.WriteLine($"[WindowsMouse] Scroll: wheelDelta uint={wheelDelta}, hex=0x{wheelDelta:X8}");
+        mouse_event(MOUSEEVENTF_WHEEL, 0, 0, wheelDelta, 0);
         Console.WriteLine("[WindowsMouse] Scroll completed");
     }
 
@@ -100,5 +108,33 @@ public class WindowsMouseInputService : IMouseInput
     {
         Console.WriteLine("[WindowsMouse] LeftUp");
         mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+    }
+
+    public void Toggle(string target)
+    {
+        var key = target.ToLower();
+        if (!_toggledStates.ContainsKey(key))
+            return;
+
+        var isCurrentlyToggled = _toggledStates[key];
+
+        if (isCurrentlyToggled)
+        {
+            Console.WriteLine($"[WindowsMouse] {key} Toggle OFF");
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+            _toggledStates[key] = false;
+        }
+        else
+        {
+            Console.WriteLine($"[WindowsMouse] {key} Toggle ON");
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+            _toggledStates[key] = true;
+        }
+    }
+
+    public bool IsToggled(string target)
+    {
+        var key = target.ToLower();
+        return _toggledStates.TryGetValue(key, out var isToggled) && isToggled;
     }
 }
