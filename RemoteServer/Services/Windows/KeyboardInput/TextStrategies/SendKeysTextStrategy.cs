@@ -23,16 +23,16 @@ public class SendKeysTextStrategy : ITextStrategy
         }
     }
 
-    private static string EscapeForSendKeys(string text)
+    internal static string EscapeForSendKeys(string text)
     {
         return text
+            .Replace("{", "{{")
+            .Replace("}", "{}}")
             .Replace("+", "{+}")
             .Replace("^", "{^}")
             .Replace("~", "{~}")
             .Replace("(", "{(}")
-            .Replace(")", "{)}")
-            .Replace("{", "{{")
-            .Replace("}", "{}}");
+            .Replace(")", "{)}");
     }
 
     public void SendText(string text)

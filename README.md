@@ -27,32 +27,11 @@ Control your Windows or Linux PC remotely from your phone using a web-based touc
 - **Volume** - Slider to set volume 0-100% (using NAudio on Windows)
 - **Mute** - Toggle mute
 
-## Architecture
+## Prerequisites
 
-### Controllers (4 Separate Controllers)
-
-| Controller | Route | Description |
-|------------|-------|-------------|
-| `IndexController` | `/`, `/api/state` | Serves HTML UI and toggle state |
-| `MediaController` | `/api/media` | Media controls (play, pause, volume, etc.) |
-| `MouseController` | `/api/mouse` | Mouse movement, clicks, scroll |
-| `KeyboardController` | `/api/keyboard` | Key presses and text typing |
-
-### Services (Platform-Specific)
-
-#### Windows Services
-| Service | Description |
-|---------|-------------|
-| `KeyPressService` | Single key press and toggle logic |
-| `WritingService` | Text typing with strategy pattern |
-| `MouseInputService` | Mouse movement, clicks, scroll |
-| `MediaInputService` | Media keys and volume control (using NAudio) |
-
-#### Text Strategies (WritingService)
-| Strategy | Description |
-|----------|-------------|
-| `KeybdTextStrategy` | Uses keybd_event for normal ASCII characters |
-| `SendKeysTextStrategy` | Uses SendKeys for special characters (>127) |
+- .NET 10.0 SDK
+- For Windows: NAudio package (included)
+- For Linux: ydotool (`sudo apt install ydotoold`)
 
 ## Quick Start
 
@@ -102,6 +81,40 @@ Windows Firewall will block external connections by default. To allow:
 - **Modifier Keys**: Win (⊞), Alt, Ctrl, Shift, Delete - Hold 1s to toggle ON, tap to toggle OFF
 - **Special Keys**: ESC, TAB, Enter, Backspace, Space, Arrow keys
 
+## Architecture
+
+### Controllers (API Endpoints)
+
+| Controller | Route | Description |
+|------------|-------|-------------|
+| `IndexController` | `/`, `/api/state` | Serves HTML UI and toggle state |
+| `MediaController` | `/api/media` | Media controls (play, pause, volume, etc.) |
+| `MouseController` | `/api/mouse` | Mouse movement, clicks, scroll |
+| `KeyboardController` | `/api/keyboard` | Key presses and text typing |
+
+### Services (Platform-Specific)
+
+#### Windows Services
+| Service | Description |
+|---------|-------------|
+| `KeyPressService` | Single key press and toggle logic |
+| `WritingService` | Text typing with strategy pattern |
+| `MouseInputService` | Mouse movement, clicks, scroll |
+| `MediaInputService` | Media keys and volume control (using NAudio) |
+
+#### Text Strategies (WritingService)
+| Strategy | Description |
+|----------|-------------|
+| `KeybdTextStrategy` | Uses keybd_event for normal ASCII characters |
+| `SendKeysTextStrategy` | Uses SendKeys for special characters (>127) |
+
+#### Linux Services
+| Service | Description |
+|---------|-------------|
+| `KeyboardInputService` | Uses ydotool for input |
+| `MouseInputService` | Uses ydotool for input |
+| `MediaInputService` | Uses ydotool for media keys |
+
 ## Building and Publishing
 
 ### Build
@@ -125,6 +138,20 @@ For Linux, `ydotool` must be installed:
 ```bash
 sudo apt install ydotoold
 ```
+
+## Usage
+
+1. Run the server on your PC
+2. Access `http://<your-ip>:5260` from your phone browser (must be on same WiFi)
+3. Use the touchpad to control the mouse
+4. Use the keyboard section to type text or send special keys
+5. Use media controls for playback and volume
+
+## Known Limitations
+
+- Volume slider uses NAudio on Windows
+- Some special characters may not work in all applications
+- Linux requires ydotool to be installed and running
 
 ## API Endpoints
 
@@ -153,7 +180,7 @@ POST /api/mouse
     action: "move" | "click" | "left" | "leftdown" | "leftup" | "right" | "scroll",
     dx?: number,
     dy?: number,
-    holdDuration?: number
+    holdDuration?: number  # 0 = quick untoggle, >=1000 = long press toggle
 }
 ```
 
@@ -162,7 +189,7 @@ POST /api/mouse
 POST /api/keyboard
 {
     key: string,
-    holdDuration?: number
+    holdDuration?: number  # 0 = quick untoggle, >=1000 = long press toggle
 }
 
 POST /api/keyboard/text
@@ -182,30 +209,40 @@ POST /api/keyboard/text
 Make sure you're running with `http://0.0.0.0:5260`
 
 ### Volume slider not working (Windows)
-The volume slider uses NAudio. First run may require administrator privileges to access audio devices.
 
 ## Project Structure
 
 ```
 RemoteServer/
 ├── Controllers/
-│   ├── IndexController.cs
-│   ├── MediaController.cs
-│   ├── MouseController.cs
-│   └── KeyboardController.cs
+│   ├── IndexController.cs      # HTML UI + state endpoint
+│   ├── MediaController.cs      # Media controls
+│   ├── MouseController.cs      # Mouse controls
+│   └── KeyboardController.cs   # Keyboard controls
 ├── Services/
+│   ├── IMediaInput.cs          # Media interface
+│   ├── IMouseInput.cs          # Mouse interface
+│   ├── ITogglable.cs           # Toggle interface
 │   ├── Windows/
 │   │   ├── KeyboardInput/
 │   │   │   ├── TextStrategies/
+│   │   │   │   ├── ITextStrategy.cs
+│   │   │   │   ├── KeybdTextStrategy.cs
+│   │   │   │   └── SendKeysTextStrategy.cs
 │   │   │   ├── KeyPressService.cs
 │   │   │   ├── WritingService.cs
-│   │   │   └── KeyMapper.cs
+│   │   │   ├── KeyMapper.cs
+│   │   │   └── KeyCharHelper.cs
 │   │   ├── MouseInputService.cs
 │   │   └── MediaInputService.cs
 │   └── Linux/
 │       ├── KeyboardInputService.cs
 │       ├── MouseInputService.cs
 │       └── MediaInputService.cs
+├── Models/
+│   ├── KeyboardCommand.cs
+│   ├── MouseCommand.cs
+│   └── TextCommand.cs
 ├── wwwroot/
 │   ├── index.html
 │   ├── app.js
@@ -213,3 +250,7 @@ RemoteServer/
 ├── Program.cs
 └── RemoteServer.csproj
 ```
+
+## License
+
+MIT
