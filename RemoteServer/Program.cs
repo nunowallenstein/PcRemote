@@ -1,10 +1,13 @@
 using System.Net;
 using RemoteServer.Services;
-using RemoteServer.Services.Windows.KeyboardInput;
+
+using WindowsServices=RemoteServer.Services.Windows;
+
+using LinuxServices=RemoteServer.Services.Linux;
 
 namespace RemoteServer
 {
-    public class Program
+    public static class Program
     {
         public static void Main(string[] args)
         {
@@ -13,17 +16,17 @@ namespace RemoteServer
             builder.Services.AddControllers();
 
             if (OperatingSystem.IsWindows())
-            {
-                builder.Services.AddSingleton<IKeyPressService, KeyPressService>();
-                builder.Services.AddSingleton<IWritingService, WritingService>();
-                builder.Services.AddSingleton<IMouseInput, RemoteServer.Services.Windows.MouseInputService>();
-                builder.Services.AddSingleton<IMediaInput, RemoteServer.Services.Windows.MediaInputService>();
+            { 
+                builder.Services.AddSingleton<IKeyPressService, WindowsServices.KeyboardInput.KeyPressService>();
+                builder.Services.AddSingleton<IWritingService, WindowsServices.KeyboardInput.WritingService>();
+                builder.Services.AddSingleton<IMouseInput,WindowsServices.MouseInputService>();
+                builder.Services.AddSingleton<IMediaInput,WindowsServices.MediaInputService>();
             }
             else if (OperatingSystem.IsLinux())
             {
-                builder.Services.AddSingleton<RemoteServer.Services.Linux.IKeyboardInput, RemoteServer.Services.Linux.KeyboardInputService>();
-                builder.Services.AddSingleton<IMouseInput, RemoteServer.Services.Linux.MouseInputService>();
-                builder.Services.AddSingleton<IMediaInput, RemoteServer.Services.Linux.MediaInputService>();
+                builder.Services.AddSingleton<LinuxServices.IKeyboardInput,LinuxServices.KeyboardInputService>();
+                builder.Services.AddSingleton<IMouseInput,LinuxServices.MouseInputService>();
+                builder.Services.AddSingleton<IMediaInput, LinuxServices.MediaInputService>();
             }
             else
             {

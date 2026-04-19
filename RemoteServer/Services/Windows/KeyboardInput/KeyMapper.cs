@@ -92,7 +92,7 @@ public static class KeyMapper
 
     public static bool NeedsAltNumpad(char c)
     {
-        return c > 127;
+        return !Char.IsAsciiLetterOrDigit(c);
     }
 
     public static short GetVkFromKeyName(string key)

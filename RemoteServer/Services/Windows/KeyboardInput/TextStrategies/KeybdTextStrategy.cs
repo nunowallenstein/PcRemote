@@ -38,16 +38,4 @@ public class KeybdTextStrategy : ITextStrategy
 
         return true;
     }
-
-    public void SendText(string text)
-    {
-        Console.WriteLine($"[KeybdTextStrategy] SendText: {text}");
-        
-        foreach (char c in text)
-        {
-            TrySendChar(c);
-        }
-        
-        Console.WriteLine("[KeybdTextStrategy] SendText completed");
-    }
 }

@@ -1,4 +1,4 @@
-namespace RemoteServer.Services.Windows.KeyboardInput;
+namespace RemoteServer.Services;
 
 public interface IWritingService
 {

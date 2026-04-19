@@ -34,16 +34,4 @@ public class SendKeysTextStrategy : ITextStrategy
             .Replace("(", "{(}")
             .Replace(")", "{)}");
     }
-
-    public void SendText(string text)
-    {
-        Console.WriteLine($"[SendKeysTextStrategy] SendText: {text}");
-
-        foreach (char c in text)
-        {
-            TrySendChar(c);
-        }
-
-        Console.WriteLine("[SendKeysTextStrategy] SendText completed");
-    }
 }
